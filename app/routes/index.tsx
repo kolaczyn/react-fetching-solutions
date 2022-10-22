@@ -3,6 +3,7 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import useSwr from "swr";
 
 const queryClient = new QueryClient();
@@ -50,12 +51,54 @@ const SwcExample = () => {
   return <span>{data?.description}</span>;
 };
 
+// I don't handle errors
+type CustomFetcherState<T> =
+  | {
+      data?: T;
+      fetching: false;
+    }
+  | {
+      data: null;
+      fetching: true;
+    };
+
+const useCustomFetch = <T,>(url: string) => {
+  const [state, setState] = useState<CustomFetcherState<T>>({
+    data: null,
+    fetching: true,
+  });
+
+  useEffect(() => {
+    (async () => {
+      const response = await fetch(url);
+      const json: T = await response.json();
+      setState({
+        data: json,
+        fetching: false,
+      });
+    })();
+  }, [url]);
+
+  return { data: state.data, fetching: state.fetching };
+};
+
+const THIS_REPO_URL =
+  "https://api.github.com/repos/kolaczyn/react-fetching-solutions";
+const WithoutLibraryExample = () => {
+  const { data, fetching } = useCustomFetch<GitHubResponse>(THIS_REPO_URL);
+
+  if (fetching) return <span>Fetching...</span>;
+  return <span>{data?.description}</span>;
+};
+
 export default function Index() {
   return (
     <>
       <ReactQueryWrapper />
       <hr />
       <SwcExample />
+      <hr />
+      <WithoutLibraryExample />
     </>
   );
 }
